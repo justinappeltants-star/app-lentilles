@@ -1,12 +1,11 @@
 (() => {
-  const SESSION_KEY = "lentilles-cloud-session-v1";
-  const config = window.LENTILLES_SUPABASE_CONFIG;
-  const supabase = window.supabase.createClient(config.url, config.anonKey, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-  });
-  let activeUser = null;
-  let cloudSyncBusy = false;
-  let KEY = "lentilles-tracker-v1:locked";
+  const USERS_KEY = "lentilles-local-users-v1";
+  const SESSION_KEY = "lentilles-local-session-v1";
+  const ADMIN_NAME = "admin";
+  const ADMIN_PASSWORD = "admin1234";
+  const storedSession = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
+  let activeUser = storedSession ? JSON.parse(storedSession) : null;
+  let KEY = "lentilles-tracker-v1:" + (activeUser?.username || "locked");
   const defaults = { entries: {}, theme: "ocean", mode: "dark", hours: 12 };
   let state = loadState();
   let shownDate = new Date();
@@ -19,53 +18,33 @@
     try { return { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; }
     catch { return { ...defaults }; }
   }
-  function save() {
-    localStorage.setItem(KEY, JSON.stringify(state));
-    syncCloudEntries().catch(error => {
-      console.error("Supabase sync:", error);
-      $("settingsMessage").textContent = "Synchronisation impossible. Vérifie ta connexion.";
-    });
+  function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+  async function hashPassword(value) {
+    const bytes = new TextEncoder().encode(value);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2,"0")).join("");
   }
-  async function syncCloudEntries() {
-    if (!activeUser || cloudSyncBusy) return;
-    cloudSyncBusy = true;
-    try {
-      const { data: existing, error } = await supabase.from("daily_entries").select("entry_date").eq("user_id", activeUser.id);
-      if (error) throw error;
-      const wanted = sortedKeys();
-      const obsolete = (existing || []).filter(row => !wanted.includes(row.entry_date)).map(row => row.entry_date);
-      if (obsolete.length) {
-        const { error: deleteError } = await supabase.from("daily_entries").delete().eq("user_id", activeUser.id).in("entry_date", obsolete);
-        if (deleteError) throw deleteError;
-      }
-      if (wanted.length) {
-        const rows = wanted.map(entry_date => ({ user_id: activeUser.id, entry_date }));
-        const { error: upsertError } = await supabase.from("daily_entries").upsert(rows, { onConflict: "user_id,entry_date" });
-        if (upsertError) throw upsertError;
-      }
-    } finally { cloudSyncBusy = false; }
+  function getUsers() {
+    try { return JSON.parse(localStorage.getItem(USERS_KEY) || "[]"); } catch { return []; }
   }
-  async function loadCloudUser(authUser) {
-    const { data: profile, error: profileError } = await supabase.from("profiles").select("username,role").eq("id", authUser.id).single();
-    if (profileError || !profile) throw profileError || new Error("Profil introuvable.");
-    return { id: authUser.id, username: profile.username, role: profile.role };
+  async function initializeAccounts() {
+    const users = getUsers();
+    if (!users.some(u => u.username === ADMIN_NAME)) {
+      users.push({username:ADMIN_NAME,passwordHash:await hashPassword(ADMIN_PASSWORD),role:"admin"});
+      localStorage.setItem(USERS_KEY,JSON.stringify(users));
+    }
   }
-  async function showApp(user) {
+  function setSession(user, remember) {
+    const value = JSON.stringify({username:user.username,role:user.role});
+    sessionStorage.removeItem(SESSION_KEY); localStorage.removeItem(SESSION_KEY);
+    (remember ? localStorage : sessionStorage).setItem(SESSION_KEY,value);
+  }
+  function showApp(user) {
     activeUser = user;
     KEY = "lentilles-tracker-v1:" + user.username;
     $("authScreen").hidden = true; $("appShell").hidden = false;
-    $("userChip").textContent = user.role === "admin" ? "Admin · " + user.username : user.username;
+    $("userChip").textContent = user.role === "admin" ? "Admin · "+user.username : user.username;
     state = loadState();
-    const { data: rows, error } = await supabase.from("daily_entries").select("entry_date").eq("user_id", user.id);
-    if (error) throw error;
-    if (!rows.length && sortedKeys().length) {
-      await syncCloudEntries();
-    } else {
-      state.entries = Object.fromEntries(rows.map(row => [row.entry_date, true]));
-      localStorage.setItem(KEY, JSON.stringify(state));
-    }
-    $("adminNav").hidden = user.role !== "admin";
-    if (user.role === "admin") await renderAdmin();
     render();
   }
   function showLogin() {
@@ -80,31 +59,23 @@
       $("authDescription").textContent=registering?"Crée ton espace personnel sur cet appareil.":"Connecte-toi pour retrouver ton calendrier.";
       switchBtn.textContent=registering?"J'ai déjà un compte":"Créer un compte"; $("authMessage").textContent="";
     });
-    loginForm.addEventListener("submit", async e => {
-      e.preventDefault();
-      const username = $("loginUsername").value.trim().toLowerCase(), password = $("loginPassword").value;
-      if (!/^[a-z0-9_-]{3,24}$/.test(username)) { $("authMessage").textContent = "Nom d'utilisateur ou mot de passe incorrect."; return; }
-      const { error } = await supabase.auth.signInWithPassword({ email: username + "@applilentilles.netlify.app", password });
-      if (error) { $("authMessage").textContent = "Connexion impossible. Vérifie tes identifiants."; return; }
-      try { const { data } = await supabase.auth.getUser(); await showApp(await loadCloudUser(data.user)); }
-      catch (err) { $("authMessage").textContent = "Profil inaccessible : " + err.message; }
+    loginForm.addEventListener("submit",async e=>{
+      e.preventDefault(); const username=$("loginUsername").value.trim().toLowerCase(), password=$("loginPassword").value;
+      const user=getUsers().find(u=>u.username===username);
+      if(!user || user.passwordHash!==await hashPassword(password)){ $("authMessage").textContent="Nom d'utilisateur ou mot de passe incorrect."; return; }
+      const sessionUser={username:user.username,role:user.role}; setSession(sessionUser,$("rememberMe").checked); showApp(sessionUser);
     });
-    registerForm.addEventListener("submit", async e => {
-      e.preventDefault();
-      const username = $("registerUsername").value.trim().toLowerCase(), password = $("registerPassword").value;
-      if (!/^[a-z0-9_-]{3,24}$/.test(username)) { $("authMessage").textContent = "Utilise 3 à 24 caractères : lettres, chiffres, _ ou -."; return; }
-      if (password.length < 8) { $("authMessage").textContent = "Choisis un mot de passe d'au moins 8 caractères."; return; }
-      const { data, error } = await supabase.auth.signUp({
-        email: username + "@applilentilles.netlify.app",
-        password,
-        options: { data: { username } }
-      });
-      if (error) { $("authMessage").textContent = error.message.includes("already") ? "Ce nom d'utilisateur est déjà pris." : "Inscription impossible : " + error.message; return; }
-      if (!data.session) { $("authMessage").textContent = "Inscription reçue. L'administrateur doit désactiver la confirmation d'e-mail dans Supabase Auth pour ce mode de connexion par nom d'utilisateur."; return; }
-      try { await showApp(await loadCloudUser(data.user)); }
-      catch (err) { $("authMessage").textContent = "Compte créé, mais profil inaccessible : " + err.message; }
+    registerForm.addEventListener("submit",async e=>{
+      e.preventDefault(); const username=$("registerUsername").value.trim().toLowerCase(), password=$("registerPassword").value;
+      if(!/^[a-z0-9_-]{3,24}$/.test(username)){ $("authMessage").textContent="Utilise 3 à 24 caractères : lettres, chiffres, _ ou -."; return; }
+      if(password.length<6){ $("authMessage").textContent="Le mot de passe doit contenir au moins 6 caractères."; return; }
+      const users=getUsers(); if(users.some(u=>u.username===username)){ $("authMessage").textContent="Ce nom d'utilisateur est déjà pris."; return; }
+      users.push({username,passwordHash:await hashPassword(password),role:"user"}); localStorage.setItem(USERS_KEY,JSON.stringify(users));
+      const sessionUser={username,role:"user"}; setSession(sessionUser,$("registerRemember").checked); showApp(sessionUser);
     });
-    $("logoutBtn").addEventListener("click", async () => { await supabase.auth.signOut(); activeUser = null; location.reload(); });
+    $("logoutBtn").addEventListener("click",()=>{
+      sessionStorage.removeItem(SESSION_KEY); localStorage.removeItem(SESSION_KEY); activeUser=null; location.reload();
+    });
   }
   function toast(message) {
     const el = $("toast"); el.textContent = message; el.classList.add("show");
@@ -162,7 +133,6 @@
     document.querySelectorAll(".nav-button").forEach(b=>b.classList.toggle("active",b===btn));
     document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===btn.dataset.view));
   }));
-  $("refreshAdmin").addEventListener("click", () => renderAdmin());
   $("prevMonth").addEventListener("click",()=>{shownDate.setMonth(shownDate.getMonth()-1);renderCalendar();});
   $("nextMonth").addEventListener("click",()=>{shownDate.setMonth(shownDate.getMonth()+1);renderCalendar();});
   $("themeSelect").addEventListener("change",e=>{state.theme=e.target.value;save();applyAppearance();});
@@ -184,40 +154,11 @@
     if(!confirm("Effacer toutes les journées et les préférences enregistrées sur cet appareil pour ce compte ? Cette action est irréversible."))return;
     state={...defaults};save();render();$("settingsMessage").textContent="Les données locales ont été effacées.";toast("Données effacées.");
   });
-  async function renderAdmin() {
-    const host = $("adminUsers");
-    host.innerHTML = "<p class='muted'>Chargement des comptes…</p>";
-    const { data: profiles, error } = await supabase.from("profiles").select("id,username,role,created_at").order("created_at", { ascending: false });
-    if (error) { host.textContent = "Impossible de charger les utilisateurs : " + error.message; return; }
-    if (!profiles.length) { host.textContent = "Aucun compte enregistré."; return; }
-    host.innerHTML = "";
-    for (const profile of profiles) {
-      const { data: entries, error: entriesError } = await supabase.from("daily_entries").select("entry_date").eq("user_id", profile.id).order("entry_date", { ascending: false });
-      const card = document.createElement("article");
-      card.className = "admin-user-card";
-      const heading = document.createElement("div");
-      heading.className = "admin-user-heading";
-      const name = document.createElement("strong");
-      name.textContent = profile.username + (profile.role === "admin" ? " · Administrateur" : "");
-      const count = document.createElement("span");
-      count.textContent = entriesError ? "Calendrier indisponible" : (entries || []).length + " jour(s) enregistré(s)";
-      heading.append(name, count);
-      const dates = document.createElement("p");
-      dates.className = "muted admin-dates";
-      dates.textContent = entriesError ? entriesError.message : (entries || []).map(x => new Intl.DateTimeFormat("fr-BE").format(new Date(x.entry_date + "T12:00:00"))).join(" · ") || "Aucune journée enregistrée.";
-      card.append(heading, dates);
-      host.append(card);
-    }
-  }
-  async function boot() {
-    setupAuth();
-    if (!config || !window.supabase) { showLogin(); $("authMessage").textContent = "Configuration Supabase manquante."; return; }
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      try { await showApp(await loadCloudUser(session.user)); }
-      catch (error) { console.error(error); await supabase.auth.signOut(); showLogin(); }
-    } else showLogin();
-    if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+  async function boot(){
+    await initializeAccounts(); setupAuth();
+    if(activeUser && getUsers().some(u=>u.username===activeUser.username && u.role===activeUser.role)) showApp(activeUser);
+    else {sessionStorage.removeItem(SESSION_KEY);localStorage.removeItem(SESSION_KEY);showLogin();}
+    if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("/service-worker.js").catch(()=>{});
   }
   boot();
 })();
