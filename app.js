@@ -5,7 +5,7 @@
   const ADMIN_PASSWORD = "admin1234";
   const storedSession = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
   let activeUser = storedSession ? JSON.parse(storedSession) : null;
-  const KEY = "lentilles-tracker-v1:" + (activeUser?.username || "locked");
+  let KEY = "lentilles-tracker-v1:" + (activeUser?.username || "locked");
   const defaults = { entries: {}, theme: "ocean", mode: "dark", hours: 12 };
   let state = loadState();
   let shownDate = new Date();
@@ -41,6 +41,7 @@
   }
   function showApp(user) {
     activeUser = user;
+    KEY = "lentilles-tracker-v1:" + user.username;
     $("authScreen").hidden = true; $("appShell").hidden = false;
     $("userChip").textContent = user.role === "admin" ? "Admin · "+user.username : user.username;
     state = loadState();
