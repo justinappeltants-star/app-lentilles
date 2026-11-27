@@ -12,10 +12,37 @@
   <script src="/app.js" defer></script>
 </head>
 <body>
-  <div class="app-shell">
+  <section class="auth-screen" id="authScreen" hidden>
+    <div class="auth-card">
+      <a class="brand auth-brand" href="#" aria-label="Lentilles"><span class="brand-mark">◉</span><span>Lentilles</span></a>
+      <p class="eyebrow">ESPACE PERSONNEL</p>
+      <h1 id="authTitle">Content de te revoir</h1>
+      <p class="muted" id="authDescription">Connecte-toi pour retrouver ton calendrier.</p>
+      <form id="loginForm" class="auth-form">
+        <label for="loginUsername">Nom d'utilisateur</label>
+        <input id="loginUsername" name="username" autocomplete="username" required maxlength="24" placeholder="Ton nom d'utilisateur">
+        <label for="loginPassword">Mot de passe</label>
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required placeholder="Ton mot de passe">
+        <label class="remember-row"><input type="checkbox" id="rememberMe" checked> <span>Rester connecté</span></label>
+        <button class="primary-button" type="submit" id="loginSubmit">Se connecter</button>
+      </form>
+      <form id="registerForm" class="auth-form" hidden>
+        <label for="registerUsername">Choisir un nom d'utilisateur</label>
+        <input id="registerUsername" name="username" autocomplete="username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]+" placeholder="3 à 24 caractères">
+        <label for="registerPassword">Choisir un mot de passe</label>
+        <input id="registerPassword" name="password" type="password" autocomplete="new-password" required minlength="6" placeholder="6 caractères minimum">
+        <label class="remember-row"><input type="checkbox" id="registerRemember" checked> <span>Rester connecté</span></label>
+        <button class="primary-button" type="submit">Créer mon compte</button>
+      </form>
+      <p class="auth-error" id="authMessage" role="status" aria-live="polite"></p>
+      <button class="text-button" id="switchAuth" type="button">Créer un compte</button>
+      <p class="auth-notice">Version locale : les comptes et les données restent sur cet appareil. Cette connexion n'est pas une protection de sécurité pour un site public.</p>
+    </div>
+  </section>
+  <div class="app-shell" id="appShell" hidden>
     <header class="topbar">
       <a class="brand" href="#" aria-label="Accueil Lentilles"><span class="brand-mark">◉</span><span>Lentilles</span></a>
-      <span class="today-label" id="todayLabel"></span>
+      <div class="topbar-actions"><span class="today-label" id="todayLabel"></span><span class="user-chip" id="userChip"></span><button class="logout-button" id="logoutBtn" type="button">Déconnexion</button></div>
     </header>
     <main>
       <section class="view active" id="calendarView" aria-labelledby="calendarTitle">
@@ -35,7 +62,6 @@
         </article>
         <p class="helper-text">Appuie sur une date pour activer ou retirer le suivi de cette journée.</p>
       </section>
-
       <section class="view" id="statsView" aria-labelledby="statsTitle">
         <div class="page-heading"><div><p class="eyebrow">TES HABITUDES</p><h1 id="statsTitle">Statistiques</h1><p class="muted">Un aperçu de ta régularité.</p></div></div>
         <div class="summary-grid">
@@ -46,7 +72,6 @@
         <article class="panel"><div class="panel-heading"><div><h2>Cette année</h2><p class="muted">Répartition par mois</p></div></div><div class="bars" id="monthlyBars"></div></article>
         <article class="panel"><div class="panel-heading"><div><h2>Étapes franchies</h2><p class="muted">Chaque journée compte.</p></div></div><div class="badges" id="badges"></div></article>
       </section>
-
       <section class="view" id="settingsView" aria-labelledby="settingsTitle">
         <div class="page-heading"><div><p class="eyebrow">PERSONNALISATION</p><h1 id="settingsTitle">Paramètres</h1><p class="muted">Ajuste l'application à tes préférences.</p></div></div>
         <article class="panel settings-panel">
@@ -55,11 +80,11 @@
           <div class="setting-row"><div><h2>Durée moyenne</h2><p class="muted">Utilisée pour estimer les heures.</p></div><select id="hoursSelect" aria-label="Durée quotidienne"><option value="8">8 heures</option><option value="10">10 heures</option><option value="12">12 heures</option><option value="14">14 heures</option></select></div>
         </article>
         <article class="panel">
-          <div class="panel-heading"><div><h2>Sauvegarde des données</h2><p class="muted">Tes données sont stockées dans ce navigateur.</p></div></div>
+          <div class="panel-heading"><div><h2>Sauvegarde des données</h2><p class="muted">Tes données sont stockées dans ce navigateur et ce compte.</p></div></div>
           <div class="action-list"><button class="secondary-button" id="exportBtn">Exporter mes données (.json)</button><label class="secondary-button file-button">Importer une sauvegarde<input type="file" id="importFile" accept="application/json,.json"></label><button class="danger-button" id="clearBtn">Effacer toutes mes données</button></div>
           <p class="helper-text" id="settingsMessage" role="status"></p>
         </article>
-        <article class="panel info-panel"><h2>À propos</h2><p class="muted">Lentilles est un outil personnel de suivi. Il ne remplace pas les conseils de ton opticien ou de ton ophtalmologue. Respecte toujours la durée de port et les consignes adaptées à tes lentilles.</p><p class="version">Version 1.0 · Application en développement</p></article>
+        <article class="panel info-panel"><h2>À propos</h2><p class="muted">Lentilles est un outil personnel de suivi. Il ne remplace pas les conseils de ton opticien ou de ton ophtalmologue. Respecte toujours la durée de port et les consignes adaptées à tes lentilles.</p><p class="version">Version 1.1 · Comptes locaux</p></article>
       </section>
     </main>
     <nav class="bottom-nav" aria-label="Navigation principale">
