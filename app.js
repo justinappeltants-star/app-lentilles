@@ -175,8 +175,25 @@
   $("modeSelect").addEventListener("change",e=>{state.mode=e.target.value;save();applyAppearance();});
   $("hoursSelect").addEventListener("change",e=>{state.hours=Number(e.target.value);save();renderStats();});
   $("exportBtn").addEventListener("click",()=>{
-    const blob=new Blob([JSON.stringify({app:"Lentilles",version:1,exportedAt:new Date().toISOString(),data:state},null,2)],{type:"application/json"});
-    const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="sauvegarde-lentilles.json";a.click();URL.revokeObjectURL(url);toast("Sauvegarde exportée.");
+    const lines = [
+      "SAUVEGARDE - SUIVI DES LENTILLES",
+      "Compte : " + (activeUser?.username || "inconnu"),
+      "Date d'export : " + new Date().toLocaleString("fr-BE"),
+      "",
+      "JOURNÉES ENREGISTRÉES",
+      "====================",
+      ""
+    ];
+    const keys = sortedKeys();
+    if (!keys.length) lines.push("Aucune journée enregistrée.");
+    for (const key of keys) {
+      const entry = entryDetails(state.entries[key]);
+      const date = new Intl.DateTimeFormat("fr-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(parseKey(key));
+      lines.push(date, "Motif : " + (entry.occasion || "Non précisé"), "Durée : " + (Number(entry.hours)||0) + " h " + (Number(entry.minutes)||0) + " min", "");
+    }
+    lines.push("PARAMÈTRES", "==========", "Thème : " + state.theme, "Affichage : " + state.mode, "Durée quotidienne de référence : " + state.hours + " h");
+    const blob = new Blob(["\\uFEFF" + lines.join("\\r\\n")], {type:"text/plain;charset=utf-8"});
+    const url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download="sauvegarde-lentilles.txt";link.click();URL.revokeObjectURL(url);toast("Fichier texte exporté.");
   });
   $("importFile").addEventListener("change",async e=>{
     const file=e.target.files[0];if(!file)return;
