@@ -112,7 +112,7 @@
       if(key===today) btn.classList.add("today");
       btn.setAttribute("aria-label", `${day} ${$("monthLabel").textContent}${state.entries[key]?", lentilles portées":""}`);
       btn.setAttribute("aria-pressed",String(Boolean(state.entries[key])));
-      btn.addEventListener("click",()=>{ if(state.entries[key]) { openDeleteDialog(key); return; } openEntryDialog(key); }); const detail="Motif : "+(e.occasion||"Non précisé")+"\nDurée : "+(Number(e.hours)||0)+" h "+(Number(e.minutes)||0)+" min"; if(confirm("Cette journée contient déjà des informations.\n\n"+detail+"\n\nVeux-tu vraiment supprimer ces données ?")){delete state.entries[key];save();render();toast("Journée supprimée.");} return; } openEntryDialog(key); });
+      btn.addEventListener("click",()=>{ if(state.entries[key]) { openDeleteDialog(key); return; } openEntryDialog(key); });
       grid.append(btn);
     }
     const keys=sortedKeys(), monthPrefix=`${year}-${pad(month+1)}-`;
