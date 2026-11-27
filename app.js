@@ -1,5 +1,11 @@
 (() => {
-  const KEY = "lentilles-tracker-v1";
+  const USERS_KEY = "lentilles-local-users-v1";
+  const SESSION_KEY = "lentilles-local-session-v1";
+  const ADMIN_NAME = "admin";
+  const ADMIN_PASSWORD = "admin1234";
+  const storedSession = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
+  let activeUser = storedSession ? JSON.parse(storedSession) : null;
+  const KEY = "lentilles-tracker-v1:" + (activeUser?.username || "locked");
   const defaults = { entries: {}, theme: "ocean", mode: "dark", hours: 12 };
   let state = loadState();
   let shownDate = new Date();
@@ -13,6 +19,63 @@
     catch { return { ...defaults }; }
   }
   function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
+  async function hashPassword(value) {
+    const bytes = new TextEncoder().encode(value);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2,"0")).join("");
+  }
+  function getUsers() {
+    try { return JSON.parse(localStorage.getItem(USERS_KEY) || "[]"); } catch { return []; }
+  }
+  async function initializeAccounts() {
+    const users = getUsers();
+    if (!users.some(u => u.username === ADMIN_NAME)) {
+      users.push({username:ADMIN_NAME,passwordHash:await hashPassword(ADMIN_PASSWORD),role:"admin"});
+      localStorage.setItem(USERS_KEY,JSON.stringify(users));
+    }
+  }
+  function setSession(user, remember) {
+    const value = JSON.stringify({username:user.username,role:user.role});
+    sessionStorage.removeItem(SESSION_KEY); localStorage.removeItem(SESSION_KEY);
+    (remember ? localStorage : sessionStorage).setItem(SESSION_KEY,value);
+  }
+  function showApp(user) {
+    activeUser = user;
+    $("authScreen").hidden = true; $("appShell").hidden = false;
+    $("userChip").textContent = user.role === "admin" ? "Admin · "+user.username : user.username;
+    state = loadState();
+    render();
+  }
+  function showLogin() {
+    $("appShell").hidden = true; $("authScreen").hidden = false;
+  }
+  function setupAuth() {
+    const loginForm=$("loginForm"), registerForm=$("registerForm"), switchBtn=$("switchAuth");
+    let registering=false;
+    switchBtn.addEventListener("click",()=>{
+      registering=!registering; loginForm.hidden=registering; registerForm.hidden=!registering;
+      $("authTitle").textContent=registering?"Créer un compte":"Content de te revoir";
+      $("authDescription").textContent=registering?"Crée ton espace personnel sur cet appareil.":"Connecte-toi pour retrouver ton calendrier.";
+      switchBtn.textContent=registering?"J'ai déjà un compte":"Créer un compte"; $("authMessage").textContent="";
+    });
+    loginForm.addEventListener("submit",async e=>{
+      e.preventDefault(); const username=$("loginUsername").value.trim().toLowerCase(), password=$("loginPassword").value;
+      const user=getUsers().find(u=>u.username===username);
+      if(!user || user.passwordHash!==await hashPassword(password)){ $("authMessage").textContent="Nom d'utilisateur ou mot de passe incorrect."; return; }
+      const sessionUser={username:user.username,role:user.role}; setSession(sessionUser,$("rememberMe").checked); showApp(sessionUser);
+    });
+    registerForm.addEventListener("submit",async e=>{
+      e.preventDefault(); const username=$("registerUsername").value.trim().toLowerCase(), password=$("registerPassword").value;
+      if(!/^[a-z0-9_-]{3,24}$/.test(username)){ $("authMessage").textContent="Utilise 3 à 24 caractères : lettres, chiffres, _ ou -."; return; }
+      if(password.length<6){ $("authMessage").textContent="Le mot de passe doit contenir au moins 6 caractères."; return; }
+      const users=getUsers(); if(users.some(u=>u.username===username)){ $("authMessage").textContent="Ce nom d'utilisateur est déjà pris."; return; }
+      users.push({username,passwordHash:await hashPassword(password),role:"user"}); localStorage.setItem(USERS_KEY,JSON.stringify(users));
+      const sessionUser={username,role:"user"}; setSession(sessionUser,$("registerRemember").checked); showApp(sessionUser);
+    });
+    $("logoutBtn").addEventListener("click",()=>{
+      sessionStorage.removeItem(SESSION_KEY); localStorage.removeItem(SESSION_KEY); activeUser=null; location.reload();
+    });
+  }
   function toast(message) {
     const el = $("toast"); el.textContent = message; el.classList.add("show");
     clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove("show"), 2300);
@@ -87,9 +150,14 @@
     e.target.value="";
   });
   $("clearBtn").addEventListener("click",()=>{
-    if(!confirm("Effacer toutes les journées et les préférences enregistrées sur cet appareil ? Cette action est irréversible."))return;
+    if(!confirm("Effacer toutes les journées et les préférences enregistrées sur cet appareil pour ce compte ? Cette action est irréversible."))return;
     state={...defaults};save();render();$("settingsMessage").textContent="Les données locales ont été effacées.";toast("Données effacées.");
   });
-  if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("/service-worker.js").catch(()=>{});
-  render();
+  async function boot(){
+    await initializeAccounts(); setupAuth();
+    if(activeUser && getUsers().some(u=>u.username===activeUser.username && u.role===activeUser.role)) showApp(activeUser);
+    else {sessionStorage.removeItem(SESSION_KEY);localStorage.removeItem(SESSION_KEY);showLogin();}
+    if("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("/service-worker.js").catch(()=>{});
+  }
+  boot();
 })();
