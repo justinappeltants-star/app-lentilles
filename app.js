@@ -174,26 +174,40 @@
   $("themeSelect").addEventListener("change",e=>{state.theme=e.target.value;save();applyAppearance();});
   $("modeSelect").addEventListener("change",e=>{state.mode=e.target.value;save();applyAppearance();});
   $("hoursSelect").addEventListener("change",e=>{state.hours=Number(e.target.value);save();renderStats();});
-  $("exportBtn").addEventListener("click",()=>{
+  $("exportBtn").addEventListener("click",async()=>{
     const lines = [
-      "SAUVEGARDE - SUIVI DES LENTILLES",
+      "╔══════════════════════════════════════════════╗",
+      "          SAUVEGARDE - SUIVI DES LENTILLES",
+      "╚══════════════════════════════════════════════╝",
+      "",
       "Compte : " + (activeUser?.username || "inconnu"),
       "Date d'export : " + new Date().toLocaleString("fr-BE"),
       "",
-      "JOURNÉES ENREGISTRÉES",
-      "====================",
-      ""
+      "┌─ JOURNÉES ENREGISTRÉES ──────────────────────"
     ];
     const keys = sortedKeys();
     if (!keys.length) lines.push("Aucune journée enregistrée.");
     for (const key of keys) {
       const entry = entryDetails(state.entries[key]);
       const date = new Intl.DateTimeFormat("fr-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(parseKey(key));
-      lines.push(date, "Motif : " + (entry.occasion || "Non précisé"), "Durée : " + (Number(entry.hours)||0) + " h " + (Number(entry.minutes)||0) + " min", "");
+      lines.push("", "📅 " + date, "   Motif  : " + (entry.occasion || "Non précisé"), "   Durée  : " + (Number(entry.hours)||0) + " h " + (Number(entry.minutes)||0) + " min");
     }
-    lines.push("PARAMÈTRES", "==========", "Thème : " + state.theme, "Affichage : " + state.mode, "Durée quotidienne de référence : " + state.hours + " h");
-    const blob = new Blob(["\\uFEFF" + lines.join("\\r\\n")], {type:"text/plain;charset=utf-8"});
-    const url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download="sauvegarde-lentilles.txt";link.click();URL.revokeObjectURL(url);toast("Fichier texte exporté.");
+    lines.push("", "└──────────────────────────────────────────────", "", "PARAMÈTRES", "──────────", "Thème : " + state.theme, "Affichage : " + state.mode, "Durée quotidienne de référence : " + state.hours + " h", "", "Fin de la sauvegarde.");
+    const content = "\uFEFF" + lines.join("\r\n");
+    const blob = new Blob([content], {type:"text/plain;charset=utf-8"});
+    const url=URL.createObjectURL(blob),link=document.createElement("a");link.href=url;link.download="sauvegarde-lentilles.txt";link.click();URL.revokeObjectURL(url);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(lines.join("\r\n"));
+        toast("Fichier TXT téléchargé et texte copié dans le presse-papiers.");
+      } else {
+        const area=document.createElement("textarea");area.value=lines.join("\r\n");area.style.position="fixed";area.style.opacity="0";document.body.appendChild(area);area.select();
+        const copied=document.execCommand("copy");area.remove();
+        toast(copied ? "Fichier TXT téléchargé et texte copié." : "Fichier TXT téléchargé. Copie automatique indisponible.");
+      }
+    } catch {
+      toast("Fichier TXT téléchargé. Autorise l'accès au presse-papiers pour copier le texte.");
+    }
   });
   $("importFile").addEventListener("change",async e=>{
     const file=e.target.files[0];if(!file)return;
