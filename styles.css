@@ -24,3 +24,10 @@
 .topbar-actions{display:flex;align-items:center;gap:12px}.user-chip{font-size:11px;color:var(--accent);background:var(--accent-soft);padding:7px 10px;border-radius:9px;font-weight:700}
 .logout-button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:9px;padding:7px 10px;font-size:11px;cursor:pointer}
 @media(max-width:650px){.auth-card{padding:25px 20px}.topbar-actions{gap:7px}.today-label{display:none}.user-chip{font-size:10px}.logout-button{font-size:10px;padding:7px}}
+
+.entry-dialog{width:min(440px,calc(100% - 28px));padding:0;border:1px solid var(--border);border-radius:20px;background:var(--surface);color:var(--text);box-shadow:0 24px 80px #0007}
+.entry-dialog::backdrop{background:#0009;backdrop-filter:blur(3px)}
+.entry-form{padding:25px;display:grid;gap:12px}.entry-form h2{font-size:21px;margin:0}.entry-form label{font-size:12px;font-weight:700;color:var(--muted);margin-top:5px}
+.entry-form select,.duration-fields input{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font:inherit}
+.duration-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.duration-fields div{display:grid;gap:5px}.duration-fields span{font-size:10px;color:var(--muted)}
+.dialog-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:8px}.dialog-actions .primary-button{margin:0}
