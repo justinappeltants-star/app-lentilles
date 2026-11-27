@@ -9,6 +9,8 @@
   <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/supabase-config.js"></script>
   <script src="/app.js" defer></script>
 </head>
 <body>
@@ -30,13 +32,13 @@
         <label for="registerUsername">Choisir un nom d'utilisateur</label>
         <input id="registerUsername" name="username" autocomplete="username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_-]+" placeholder="3 à 24 caractères">
         <label for="registerPassword">Choisir un mot de passe</label>
-        <input id="registerPassword" name="password" type="password" autocomplete="new-password" required minlength="6" placeholder="6 caractères minimum">
+        <input id="registerPassword" name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="8 caractères minimum">
         <label class="remember-row"><input type="checkbox" id="registerRemember" checked> <span>Rester connecté</span></label>
         <button class="primary-button" type="submit">Créer mon compte</button>
       </form>
       <p class="auth-error" id="authMessage" role="status" aria-live="polite"></p>
       <button class="text-button" id="switchAuth" type="button">Créer un compte</button>
-      <p class="auth-notice">Version locale : les comptes et les données restent sur cet appareil. Cette connexion n'est pas une protection de sécurité pour un site public.</p>
+      <p class="auth-notice">Les comptes et calendriers sont stockés en ligne. L’administrateur peut consulter les noms d’utilisateur et les dates enregistrées, mais pas les mots de passe.</p>
     </div>
   </section>
   <div class="app-shell" id="appShell" hidden>
@@ -72,6 +74,10 @@
         <article class="panel"><div class="panel-heading"><div><h2>Cette année</h2><p class="muted">Répartition par mois</p></div></div><div class="bars" id="monthlyBars"></div></article>
         <article class="panel"><div class="panel-heading"><div><h2>Étapes franchies</h2><p class="muted">Chaque journée compte.</p></div></div><div class="badges" id="badges"></div></article>
       </section>
+      <section class="view" id="adminView" aria-labelledby="adminTitle">
+        <div class="page-heading"><div><p class="eyebrow">GESTION DES COMPTES</p><h1 id="adminTitle">Administration</h1><p class="muted">Utilisateurs inscrits et journées enregistrées.</p></div><button class="secondary-button" id="refreshAdmin" type="button">Actualiser</button></div>
+        <div id="adminUsers" class="admin-users" aria-live="polite"></div>
+      </section>
       <section class="view" id="settingsView" aria-labelledby="settingsTitle">
         <div class="page-heading"><div><p class="eyebrow">PERSONNALISATION</p><h1 id="settingsTitle">Paramètres</h1><p class="muted">Ajuste l'application à tes préférences.</p></div></div>
         <article class="panel settings-panel">
@@ -90,6 +96,7 @@
     <nav class="bottom-nav" aria-label="Navigation principale">
       <button class="nav-button active" data-view="calendarView"><span>▦</span>Calendrier</button>
       <button class="nav-button" data-view="statsView"><span>▥</span>Stats</button>
+      <button class="nav-button" id="adminNav" data-view="adminView" hidden><span>♙</span>Admin</button>
       <button class="nav-button" data-view="settingsView"><span>⚙</span>Réglages</button>
     </nav>
   </div>

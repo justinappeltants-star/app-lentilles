@@ -1,12 +1,13 @@
--- Schéma initial Supabase pour la partie comptes et administration.
--- À exécuter dans le SQL Editor d'un projet Supabase après vérification.
--- Ne jamais placer la clé service_role dans le navigateur ou dans GitHub.
+-- Schéma utilisé par l'application Lentilles avec Supabase Auth.
+-- La clé publishable/anon peut être dans le navigateur ; JAMAIS la service_role.
 
-create extension if not exists pgcrypto;
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+grant usage on schema private to authenticated;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
-  display_name text,
+  username text not null unique check (username ~ '^[a-z0-9_-]{3,24}$'),
   role text not null default 'user' check (role in ('user','admin')),
   created_at timestamptz not null default now()
 );
@@ -16,89 +17,77 @@ create table if not exists public.daily_entries (
   user_id uuid not null references auth.users(id) on delete cascade,
   entry_date date not null,
   created_at timestamptz not null default now(),
-  unique(user_id, entry_date)
+  unique (user_id, entry_date)
 );
-
-create table if not exists public.app_settings (
-  id integer primary key default 1 check (id = 1),
-  max_users integer not null default 1000 check (max_users between 2 and 100000),
-  updated_at timestamptz not null default now()
-);
-
-insert into public.app_settings (id, max_users)
-values (1, 1000)
-on conflict (id) do nothing;
 
 alter table public.profiles enable row level security;
 alter table public.daily_entries enable row level security;
-alter table public.app_settings enable row level security;
 
-create or replace function public.is_admin()
+create or replace function private.is_admin()
 returns boolean language sql stable security definer
-set search_path = public
+set search_path = ''
 as $$
   select exists (
-    select 1 from public.profiles
-    where id = auth.uid() and role = 'admin'
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.role = 'admin'
   );
 $$;
+revoke all on function private.is_admin() from public, anon;
+grant execute on function private.is_admin() to authenticated;
 
-create policy "Users read own profile" on public.profiles
-for select to authenticated using (id = auth.uid() or public.is_admin());
-create policy "Users update own display name" on public.profiles
-for update to authenticated using (id = auth.uid()) with check (id = auth.uid());
-create policy "Users manage own daily entries" on public.daily_entries
-for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
-create policy "Authenticated users read capacity" on public.app_settings
-for select to authenticated using (true);
-create policy "Admins update capacity" on public.app_settings
-for update to authenticated using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "Profiles visible to owner and admins" on public.profiles;
+create policy "Profiles visible to owner and admins"
+on public.profiles for select to authenticated
+using (id = (select auth.uid()) or (select private.is_admin()));
+
+drop policy if exists "Users read own entries and admins read all" on public.daily_entries;
+create policy "Users read own entries and admins read all"
+on public.daily_entries for select to authenticated
+using (user_id = (select auth.uid()) or (select private.is_admin()));
+
+drop policy if exists "Users insert own entries" on public.daily_entries;
+create policy "Users insert own entries"
+on public.daily_entries for insert to authenticated
+with check (user_id = (select auth.uid()));
+
+drop policy if exists "Users update own entries" on public.daily_entries;
+create policy "Users update own entries"
+on public.daily_entries for update to authenticated
+using (user_id = (select auth.uid()))
+with check (user_id = (select auth.uid()));
+
+drop policy if exists "Users delete own entries" on public.daily_entries;
+create policy "Users delete own entries"
+on public.daily_entries for delete to authenticated
+using (user_id = (select auth.uid()));
 
 create or replace function public.create_profile_for_new_user()
 returns trigger language plpgsql security definer
-set search_path = public
+set search_path = ''
 as $$
+declare requested_username text;
 begin
-  insert into public.profiles (id) values (new.id)
-  on conflict (id) do nothing;
+  requested_username := lower(coalesce(new.raw_user_meta_data ->> 'username', split_part(new.email, '@', 1)));
+  if requested_username !~ '^[a-z0-9_-]{3,24}$' then
+    raise exception 'INVALID_USERNAME';
+  end if;
+  insert into public.profiles (id, username, role)
+  values (new.id, requested_username, 'user');
   return new;
 end;
 $$;
+revoke all on function public.create_profile_for_new_user() from public, anon, authenticated;
 
 drop trigger if exists on_auth_user_created_profile on auth.users;
 create trigger on_auth_user_created_profile
 after insert on auth.users
-for each row execute procedure public.create_profile_for_new_user();
+for each row execute function public.create_profile_for_new_user();
 
--- Limite de comptes : vérification transactionnelle avant chaque inscription.
-create or replace function public.enforce_user_capacity()
-returns trigger language plpgsql security definer
-set search_path = public
-as $$
-declare
-  configured_limit integer;
-  current_count bigint;
-begin
-  select max_users into configured_limit
-  from public.app_settings where id = 1 for update;
+grant select on public.profiles to authenticated;
+grant select, insert, update, delete on public.daily_entries to authenticated;
+revoke all on public.profiles from anon;
+revoke all on public.daily_entries from anon;
 
-  select count(*) into current_count from auth.users;
-
-  if configured_limit is not null and current_count >= configured_limit then
-    raise exception 'USER_LIMIT_REACHED';
-  end if;
-  return new;
-end;
-$$;
-
-drop trigger if exists enforce_auth_user_capacity on auth.users;
-create trigger enforce_auth_user_capacity
-before insert on auth.users
-for each row execute procedure public.enforce_user_capacity();
-
--- IMPORTANT : promouvoir le compte administrateur manuellement, depuis le SQL Editor,
--- après avoir créé ce compte et vérifié son UUID :
+-- Après inscription du compte admin, retrouver son UUID dans Authentication > Users,
+-- puis exécuter dans le SQL Editor :
 -- update public.profiles set role = 'admin' where id = 'UUID_DU_COMPTE_ADMIN';
-
--- Le tableau de bord admin et l'authentification ne sont pas encore reliés à l'interface web.
--- Le schéma ci-dessus constitue la base backend à configurer et tester avant production.

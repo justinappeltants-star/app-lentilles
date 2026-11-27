@@ -1,56 +1,54 @@
 # Lentilles — suivi quotidien
 
-Petite application web responsive pour noter les journées de port de lentilles, consulter des statistiques et personnaliser l'interface.
+Application web de suivi du port de lentilles, avec comptes Supabase, calendriers synchronisés et espace administrateur.
 
-## Fonctionnalités disponibles
+## Fonctionnalités
 
-- Calendrier mensuel avec activation/désactivation des journées.
-- Statistiques : total, série actuelle, meilleure série, estimation des heures et étapes.
-- Cinq palettes : Océan, Forêt, Lavande, Corail et Minuit.
-- Modes sombre, clair et automatique.
-- Export et import des données au format JSON.
-- Application web progressive (PWA) avec cache hors ligne de base.
+- Inscription et connexion par nom d'utilisateur et mot de passe via Supabase Auth.
+- Option de session persistante (rester connecté).
+- Calendrier et statistiques par compte.
+- Synchronisation des journées avec Supabase.
+- Tableau de bord administrateur : liste des comptes et jours enregistrés.
+- Préférences d'apparence, import/export JSON et PWA.
 
-## Déploiement sur Netlify
+## Configuration Supabase
 
-Le site est statique : aucune compilation n'est nécessaire.
+Le fichier `supabase-config.js` contient uniquement l'URL du projet et la clé publishable. Cette clé est publique par conception ; la sécurité repose sur les politiques RLS. Ne jamais placer la clé `service_role` ou un mot de passe de base de données dans le dépôt ou le navigateur.
 
-1. Dans Netlify, choisir **Add new project** puis **Import an existing project**.
-2. Connecter GitHub et sélectionner `justinappeltants-star/app-lentilles`.
-3. Branche : `main`.
-4. Répertoire de publication : `.` (racine du dépôt).
-5. Laisser la commande de build vide, puis lancer le déploiement.
+Le schéma de référence est dans `supabase/schema.sql`. Les tables utilisées sont `profiles` et `daily_entries`. Le trigger crée automatiquement un profil pour chaque compte Auth. Les utilisateurs ne peuvent lire et modifier que leurs propres journées ; le rôle administrateur peut lire tous les profils et calendriers.
 
-Le fichier `netlify.toml` définit déjà le répertoire publié.
+### Configuration nécessaire dans le tableau de bord Supabase
 
-## Lancer en local
+1. Dans **Authentication → Sign In / Providers → Email**, désactiver **Confirm email**. L'application utilise un identifiant interne sous la forme `nom@users.lentilles.invalid` car l'écran d'inscription ne demande pas d'adresse e-mail.
+2. Vérifier que les tables `profiles` et `daily_entries` existent et que les politiques RLS sont activées.
+3. Créer le compte administrateur depuis l'écran d'inscription du site avec le nom d'utilisateur `admin` et un mot de passe fort choisi par l'administrateur.
+4. Dans **Authentication → Users**, copier l'UUID de ce compte, puis exécuter dans le SQL Editor :
+   `update public.profiles set role = 'admin' where id = 'UUID_DU_COMPTE_ADMIN';`
+5. Se déconnecter puis se reconnecter. L'onglet **Admin** apparaît alors.
 
-Ouvrir `index.html` dans un navigateur pour tester les fonctions principales. Pour tester le service worker/PWA, utiliser un serveur local ou Netlify (HTTPS).
+Les comptes utilisent des adresses internes non destinées à recevoir des e-mails : la récupération par e-mail n'est donc pas disponible. Prévoir une procédure de récupération administrée séparément avant un usage important.
 
-## Comptes et limites actuelles
+## Confidentialité
 
-- Connexion locale par nom d'utilisateur et mot de passe.
-- Création de comptes locaux et option « Rester connecté ».
-- Compte administrateur initial : identifiant `admin`, mot de passe `admin1234`.
-- Les calendriers et préférences sont séparés par compte sur le même navigateur.
-- Les mots de passe sont stockés sous forme de condensat SHA-256 dans le stockage local.
+Les utilisateurs sont informés que leurs calendriers sont stockés en ligne et que l'administrateur peut consulter les noms d'utilisateur et les dates enregistrées. Les mots de passe ne sont jamais visibles par l'administrateur. Ne pas utiliser cette application pour stocker des informations médicales ou sensibles.
 
-**Important : cette connexion est une démonstration locale, pas une authentification sécurisée.** Les comptes et données restent sur l'appareil, ne sont pas synchronisés entre appareils et peuvent être modifiés ou contournés par une personne ayant accès au navigateur ou au code. Le code envoyé au navigateur est visible même si le dépôt GitHub est privé. N'utilise pas ce système pour protéger des données sensibles ou un véritable espace administrateur. Pour une authentification réelle, il faudra ajouter un serveur ou un service comme Supabase.
+## Déploiement Netlify
 
-L'export JSON permet de conserver une copie des données.
+- Branche de production : `main`
+- Répertoire publié : `.`
+- Commande de build : aucune
+
+Le site est statique ; les modifications fusionnées dans `main` déclenchent le déploiement si Netlify est connecté au dépôt.
 
 ## Structure
 
 ```
-.
-├── index.html
-├── styles.css
-├── app.js
-├── manifest.webmanifest
-├── service-worker.js
-├── netlify.toml
-├── icons/
-│   └── icon.svg
-└── supabase/
-    └── schema.sql
+index.html
+styles.css
+app.js
+supabase-config.js
+service-worker.js
+manifest.webmanifest
+netlify.toml
+supabase/schema.sql
 ```
