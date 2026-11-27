@@ -102,6 +102,16 @@
       <p class="auth-error" id="entryMessage" role="status"></p><div class="dialog-actions"><button class="secondary-button" type="button" id="cancelEntryBtn">Annuler</button><button class="primary-button" type="submit">Confirmer</button></div>
     </form>
   </dialog>
+  <dialog class="entry-dialog" id="deleteDialog" aria-labelledby="deleteDialogTitle">
+    <div class="entry-form">
+      <p class="eyebrow">SUPPRESSION</p>
+      <h2 id="deleteDialogTitle">Supprimer cette journée ?</h2>
+      <p class="muted" id="deleteDateLabel"></p>
+      <div class="delete-details"><p><span>Motif</span><strong id="deleteOccasion"></strong></p><p><span>Durée</span><strong id="deleteDuration"></strong></p></div>
+      <p class="muted">Veux-tu vraiment supprimer les informations de cette journée ?</p>
+      <div class="dialog-actions"><button class="secondary-button" type="button" id="cancelDeleteBtn">Annuler</button><button class="danger-button" type="button" id="confirmDeleteBtn">Confirmer la suppression</button></div>
+    </div>
+  </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
