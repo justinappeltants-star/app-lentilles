@@ -31,3 +31,9 @@
 .entry-form select,.duration-fields input{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface2);color:var(--text);font:inherit}
 .duration-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.duration-fields div{display:grid;gap:5px}.duration-fields span{font-size:10px;color:var(--muted)}
 .dialog-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:8px}.dialog-actions .primary-button{margin:0}
+
+.delete-details{display:grid;gap:8px;padding:13px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface2)}
+.delete-details p{display:flex;justify-content:space-between;gap:12px;margin:0;font-size:12px}
+.delete-details span{color:var(--muted)}
+.delete-details strong{text-align:right}
+.dialog-actions .danger-button{padding:11px 14px;background:color-mix(in srgb,var(--danger) 10%,var(--surface2));font:inherit;font-size:12px;font-weight:800}
