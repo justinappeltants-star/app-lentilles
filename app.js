@@ -84,7 +84,7 @@
       e.preventDefault();
       const username = $("loginUsername").value.trim().toLowerCase(), password = $("loginPassword").value;
       if (!/^[a-z0-9_-]{3,24}$/.test(username)) { $("authMessage").textContent = "Nom d'utilisateur ou mot de passe incorrect."; return; }
-      const { error } = await supabase.auth.signInWithPassword({ email: username + "@users.example.com", password });
+      const { error } = await supabase.auth.signInWithPassword({ email: username + "@applilentilles.netlify.app", password });
       if (error) { $("authMessage").textContent = "Connexion impossible. Vérifie tes identifiants."; return; }
       try { const { data } = await supabase.auth.getUser(); await showApp(await loadCloudUser(data.user)); }
       catch (err) { $("authMessage").textContent = "Profil inaccessible : " + err.message; }
@@ -95,7 +95,7 @@
       if (!/^[a-z0-9_-]{3,24}$/.test(username)) { $("authMessage").textContent = "Utilise 3 à 24 caractères : lettres, chiffres, _ ou -."; return; }
       if (password.length < 8) { $("authMessage").textContent = "Choisis un mot de passe d'au moins 8 caractères."; return; }
       const { data, error } = await supabase.auth.signUp({
-        email: username + "@users.example.com",
+        email: username + "@applilentilles.netlify.app",
         password,
         options: { data: { username } }
       });
