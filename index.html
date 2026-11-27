@@ -93,6 +93,15 @@
       <button class="nav-button" data-view="settingsView"><span>⚙</span>Réglages</button>
     </nav>
   </div>
+  <dialog class="entry-dialog" id="entryDialog" aria-labelledby="entryDialogTitle">
+    <form id="entryForm" class="entry-form">
+      <p class="eyebrow">JOURNÉE DE PORT</p><h2 id="entryDialogTitle">Ajouter les informations</h2><p class="muted" id="entryDateLabel"></p>
+      <label for="occasionSelect">Pour quelle occasion ?</label>
+      <select id="occasionSelect" required><option>Loisirs</option><option>École</option><option>Travail</option><option>Soirée</option><option>Scouts</option><option>Sport</option><option>Vacances</option><option>Sortie</option><option>Quotidien</option><option>Autre</option></select>
+      <label>Durée d'utilisation</label><div class="duration-fields"><div><input id="durationHours" type="number" min="0" max="24" value="2" required><span>heures</span></div><div><input id="durationMinutes" type="number" min="0" max="59" value="0" required><span>minutes</span></div></div>
+      <p class="auth-error" id="entryMessage" role="status"></p><div class="dialog-actions"><button class="secondary-button" type="button" id="cancelEntryBtn">Annuler</button><button class="primary-button" type="submit">Confirmer</button></div>
+    </form>
+  </dialog>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
