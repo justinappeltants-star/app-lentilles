@@ -16,6 +16,7 @@
   const sortedKeys = () => Object.keys(state.entries).filter(k => state.entries[k]).sort();
   const entryDetails = entry => entry && typeof entry === "object" ? entry : { occasion: "Non précisé", hours: Number(state.hours)||12, minutes: 0 };
   let pendingDateKey = null;
+  let pendingDeleteKey = null;
   function loadState() {
     try { return { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; }
     catch { return { ...defaults }; }
@@ -111,13 +112,26 @@
       if(key===today) btn.classList.add("today");
       btn.setAttribute("aria-label", `${day} ${$("monthLabel").textContent}${state.entries[key]?", lentilles portées":""}`);
       btn.setAttribute("aria-pressed",String(Boolean(state.entries[key])));
-      btn.addEventListener("click",()=>{ if(state.entries[key]) { const e=entryDetails(state.entries[key]); const detail="Motif : "+(e.occasion||"Non précisé")+"\nDurée : "+(Number(e.hours)||0)+" h "+(Number(e.minutes)||0)+" min"; if(confirm("Cette journée contient déjà des informations.\n\n"+detail+"\n\nVeux-tu vraiment supprimer ces données ?")){delete state.entries[key];save();render();toast("Journée supprimée.");} return; } openEntryDialog(key); });
+      btn.addEventListener("click",()=>{ if(state.entries[key]) { openDeleteDialog(key); return; } openEntryDialog(key); }); const detail="Motif : "+(e.occasion||"Non précisé")+"\nDurée : "+(Number(e.hours)||0)+" h "+(Number(e.minutes)||0)+" min"; if(confirm("Cette journée contient déjà des informations.\n\n"+detail+"\n\nVeux-tu vraiment supprimer ces données ?")){delete state.entries[key];save();render();toast("Journée supprimée.");} return; } openEntryDialog(key); });
       grid.append(btn);
     }
     const keys=sortedKeys(), monthPrefix=`${year}-${pad(month+1)}-`;
     $("totalDays").textContent=keys.length; $("monthDays").textContent=keys.filter(k=>k.startsWith(monthPrefix)).length;
     $("currentStreak").textContent=streaks().current;
   }
+  function openDeleteDialog(key) {
+    pendingDeleteKey = key;
+    const e = entryDetails(state.entries[key]);
+    $("deleteDateLabel").textContent = new Intl.DateTimeFormat("fr-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(parseKey(key));
+    $("deleteOccasion").textContent = e.occasion || "Non précisé";
+    $("deleteDuration").textContent = (Number(e.hours)||0) + " h " + (Number(e.minutes)||0) + " min";
+    $("deleteDialog").showModal();
+  }
+  $("cancelDeleteBtn").addEventListener("click", () => { $("deleteDialog").close(); pendingDeleteKey = null; });
+  $("confirmDeleteBtn").addEventListener("click", () => {
+    if (!pendingDeleteKey || !state.entries[pendingDeleteKey]) return;
+    delete state.entries[pendingDeleteKey]; save(); $("deleteDialog").close(); pendingDeleteKey = null; render(); toast("Journée supprimée.");
+  });
   function openEntryDialog(key) {
     pendingDateKey = key;
     $("entryDateLabel").textContent = new Intl.DateTimeFormat("fr-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(parseKey(key));
