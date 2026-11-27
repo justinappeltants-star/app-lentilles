@@ -162,6 +162,7 @@
     document.querySelectorAll(".nav-button").forEach(b=>b.classList.toggle("active",b===btn));
     document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===btn.dataset.view));
   }));
+  $("refreshAdmin").addEventListener("click", () => renderAdmin());
   $("prevMonth").addEventListener("click",()=>{shownDate.setMonth(shownDate.getMonth()-1);renderCalendar();});
   $("nextMonth").addEventListener("click",()=>{shownDate.setMonth(shownDate.getMonth()+1);renderCalendar();});
   $("themeSelect").addEventListener("change",e=>{state.theme=e.target.value;save();applyAppearance();});
