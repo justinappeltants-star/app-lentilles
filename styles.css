@@ -24,13 +24,3 @@
 .topbar-actions{display:flex;align-items:center;gap:12px}.user-chip{font-size:11px;color:var(--accent);background:var(--accent-soft);padding:7px 10px;border-radius:9px;font-weight:700}
 .logout-button{border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:9px;padding:7px 10px;font-size:11px;cursor:pointer}
 @media(max-width:650px){.auth-card{padding:25px 20px}.topbar-actions{gap:7px}.today-label{display:none}.user-chip{font-size:10px}.logout-button{font-size:10px;padding:7px}}
-
-
-/* Tableau de bord administrateur */
-.admin-users{display:grid;gap:12px}
-.admin-user-card{padding:17px 18px;background:var(--surface);border:1px solid var(--border);border-radius:15px}
-.admin-user-heading{display:flex;justify-content:space-between;align-items:center;gap:12px}
-.admin-user-heading strong{font-size:14px}
-.admin-user-heading span{font-size:11px;color:var(--accent);font-weight:700}
-.admin-dates{margin-top:10px;overflow-wrap:anywhere}
-@media(max-width:650px){.admin-user-heading{align-items:flex-start;flex-direction:column;gap:5px}}
