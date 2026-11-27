@@ -27,13 +27,17 @@ Le fichier `netlify.toml` définit déjà le répertoire publié.
 
 Ouvrir `index.html` dans un navigateur pour tester les fonctions principales. Pour tester le service worker/PWA, utiliser un serveur local ou Netlify (HTTPS).
 
-## Données et limites actuelles
+## Comptes et limites actuelles
 
-Les journées et préférences sont actuellement enregistrées dans le stockage local du navigateur. Elles ne sont donc pas synchronisées entre appareils et ne constituent pas une sauvegarde cloud. L'export JSON permet de conserver une copie.
+- Connexion locale par nom d'utilisateur et mot de passe.
+- Création de comptes locaux et option « Rester connecté ».
+- Compte administrateur initial : identifiant `admin`, mot de passe `admin1234`.
+- Les calendriers et préférences sont séparés par compte sur le même navigateur.
+- Les mots de passe sont stockés sous forme de condensat SHA-256 dans le stockage local.
 
-Le dossier `supabase/` contient un schéma SQL de départ pour les profils, les journées, les rôles administrateur et une limite de comptes configurable entre 2 et 100 000. Il doit être installé, vérifié et testé dans un projet Supabase. L'interface de connexion, la synchronisation cloud, le tableau de bord administrateur et la récupération SMS/WhatsApp ne sont pas encore intégrés.
+**Important : cette connexion est une démonstration locale, pas une authentification sécurisée.** Les comptes et données restent sur l'appareil, ne sont pas synchronisés entre appareils et peuvent être modifiés ou contournés par une personne ayant accès au navigateur ou au code. Le code envoyé au navigateur est visible même si le dépôt GitHub est privé. N'utilise pas ce système pour protéger des données sensibles ou un véritable espace administrateur. Pour une authentification réelle, il faudra ajouter un serveur ou un service comme Supabase.
 
-Ne jamais mettre de mot de passe administrateur, de clé `service_role` ou de secret dans le code public. Toute promotion administrateur doit être faite côté serveur après vérification du compte.
+L'export JSON permet de conserver une copie des données.
 
 ## Structure
 
