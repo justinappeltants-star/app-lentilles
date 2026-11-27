@@ -1,0 +1,12 @@
+{
+  "name": "Lentilles — suivi quotidien",
+  "short_name": "Lentilles",
+  "description": "Suivi personnel des jours de port de lentilles.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d151c",
+  "theme_color": "#101820",
+  "icons": [
+    { "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

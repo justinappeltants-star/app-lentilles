@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101820">
+  <meta name="description" content="Application personnelle de suivi des jours de port de lentilles.">
+  <title>Lentilles — suivi quotidien</title>
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="Accueil Lentilles"><span class="brand-mark">◉</span><span>Lentilles</span></a>
+      <span class="today-label" id="todayLabel"></span>
+    </header>
+    <main>
+      <section class="view active" id="calendarView" aria-labelledby="calendarTitle">
+        <div class="page-heading">
+          <div><p class="eyebrow">TON SUIVI</p><h1 id="calendarTitle">Calendrier</h1><p class="muted">Note les jours où tu portes tes lentilles.</p></div>
+          <div class="month-controls"><button class="icon-button" id="prevMonth" aria-label="Mois précédent">‹</button><strong id="monthLabel"></strong><button class="icon-button" id="nextMonth" aria-label="Mois suivant">›</button></div>
+        </div>
+        <div class="summary-grid">
+          <article class="stat-card accent-card"><span class="stat-label">Jours au total</span><strong id="totalDays">0</strong><span class="stat-note">depuis le début</span></article>
+          <article class="stat-card"><span class="stat-label">Série actuelle</span><strong id="currentStreak">0</strong><span class="stat-note">jours consécutifs</span></article>
+          <article class="stat-card"><span class="stat-label">Ce mois-ci</span><strong id="monthDays">0</strong><span class="stat-note">jours enregistrés</span></article>
+        </div>
+        <article class="panel calendar-panel">
+          <div class="weekdays"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div>
+          <div class="calendar-grid" id="calendarGrid" aria-label="Calendrier mensuel"></div>
+          <div class="legend"><span><i class="dot dot-done"></i> Lentilles portées</span><span><i class="dot dot-today"></i> Aujourd'hui</span></div>
+        </article>
+        <p class="helper-text">Appuie sur une date pour activer ou retirer le suivi de cette journée.</p>
+      </section>
+
+      <section class="view" id="statsView" aria-labelledby="statsTitle">
+        <div class="page-heading"><div><p class="eyebrow">TES HABITUDES</p><h1 id="statsTitle">Statistiques</h1><p class="muted">Un aperçu de ta régularité.</p></div></div>
+        <div class="summary-grid">
+          <article class="stat-card"><span class="stat-label">Jours enregistrés</span><strong id="statsTotal">0</strong><span class="stat-note">au total</span></article>
+          <article class="stat-card"><span class="stat-label">Meilleure série</span><strong id="bestStreak">0</strong><span class="stat-note">jours consécutifs</span></article>
+          <article class="stat-card"><span class="stat-label">Temps estimé</span><strong id="hoursTotal">0 h</strong><span class="stat-note">sur la base de 12 h/jour</span></article>
+        </div>
+        <article class="panel"><div class="panel-heading"><div><h2>Cette année</h2><p class="muted">Répartition par mois</p></div></div><div class="bars" id="monthlyBars"></div></article>
+        <article class="panel"><div class="panel-heading"><div><h2>Étapes franchies</h2><p class="muted">Chaque journée compte.</p></div></div><div class="badges" id="badges"></div></article>
+      </section>
+
+      <section class="view" id="settingsView" aria-labelledby="settingsTitle">
+        <div class="page-heading"><div><p class="eyebrow">PERSONNALISATION</p><h1 id="settingsTitle">Paramètres</h1><p class="muted">Ajuste l'application à tes préférences.</p></div></div>
+        <article class="panel settings-panel">
+          <div class="setting-row"><div><h2>Apparence</h2><p class="muted">Choisis un thème de couleurs.</p></div><select id="themeSelect" aria-label="Thème"><option value="ocean">Océan</option><option value="forest">Forêt</option><option value="lavender">Lavande</option><option value="coral">Corail</option><option value="midnight">Minuit</option></select></div>
+          <div class="setting-row"><div><h2>Mode d'affichage</h2><p class="muted">Clair, sombre ou selon ton appareil.</p></div><select id="modeSelect" aria-label="Mode d'affichage"><option value="dark">Sombre</option><option value="light">Clair</option><option value="auto">Automatique</option></select></div>
+          <div class="setting-row"><div><h2>Durée moyenne</h2><p class="muted">Utilisée pour estimer les heures.</p></div><select id="hoursSelect" aria-label="Durée quotidienne"><option value="8">8 heures</option><option value="10">10 heures</option><option value="12">12 heures</option><option value="14">14 heures</option></select></div>
+        </article>
+        <article class="panel">
+          <div class="panel-heading"><div><h2>Sauvegarde des données</h2><p class="muted">Tes données sont stockées dans ce navigateur.</p></div></div>
+          <div class="action-list"><button class="secondary-button" id="exportBtn">Exporter mes données (.json)</button><label class="secondary-button file-button">Importer une sauvegarde<input type="file" id="importFile" accept="application/json,.json"></label><button class="danger-button" id="clearBtn">Effacer toutes mes données</button></div>
+          <p class="helper-text" id="settingsMessage" role="status"></p>
+        </article>
+        <article class="panel info-panel"><h2>À propos</h2><p class="muted">Lentilles est un outil personnel de suivi. Il ne remplace pas les conseils de ton opticien ou de ton ophtalmologue. Respecte toujours la durée de port et les consignes adaptées à tes lentilles.</p><p class="version">Version 1.0 · Application en développement</p></article>
+      </section>
+    </main>
+    <nav class="bottom-nav" aria-label="Navigation principale">
+      <button class="nav-button active" data-view="calendarView"><span>▦</span>Calendrier</button>
+      <button class="nav-button" data-view="statsView"><span>▥</span>Stats</button>
+      <button class="nav-button" data-view="settingsView"><span>⚙</span>Réglages</button>
+    </nav>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
