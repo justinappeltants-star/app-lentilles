@@ -14,6 +14,8 @@
   const dateKey = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   const parseKey = (key) => { const [y,m,d] = key.split("-").map(Number); return new Date(y,m-1,d); };
   const sortedKeys = () => Object.keys(state.entries).filter(k => state.entries[k]).sort();
+  const entryDetails = entry => entry && typeof entry === "object" ? entry : { occasion: "Non précisé", hours: Number(state.hours)||12, minutes: 0 };
+  let pendingDateKey = null;
   function loadState() {
     try { return { ...defaults, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; }
     catch { return { ...defaults }; }
@@ -109,16 +111,36 @@
       if(key===today) btn.classList.add("today");
       btn.setAttribute("aria-label", `${day} ${$("monthLabel").textContent}${state.entries[key]?", lentilles portées":""}`);
       btn.setAttribute("aria-pressed",String(Boolean(state.entries[key])));
-      btn.addEventListener("click",()=>{ if(state.entries[key]) delete state.entries[key]; else state.entries[key]=true; save(); render(); });
+      btn.addEventListener("click",()=>{ if(state.entries[key]) { const e=entryDetails(state.entries[key]); const detail="Motif : "+(e.occasion||"Non précisé")+"\nDurée : "+(Number(e.hours)||0)+" h "+(Number(e.minutes)||0)+" min"; if(confirm("Cette journée contient déjà des informations.\n\n"+detail+"\n\nVeux-tu vraiment supprimer ces données ?")){delete state.entries[key];save();render();toast("Journée supprimée.");} return; } openEntryDialog(key); });
       grid.append(btn);
     }
     const keys=sortedKeys(), monthPrefix=`${year}-${pad(month+1)}-`;
     $("totalDays").textContent=keys.length; $("monthDays").textContent=keys.filter(k=>k.startsWith(monthPrefix)).length;
     $("currentStreak").textContent=streaks().current;
   }
+  function openEntryDialog(key) {
+    pendingDateKey = key;
+    $("entryDateLabel").textContent = new Intl.DateTimeFormat("fr-BE",{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(parseKey(key));
+    $("occasionSelect").value = "Loisirs";
+    $("durationHours").value = "2";
+    $("durationMinutes").value = "0";
+    $("entryMessage").textContent = "";
+    $("entryDialog").showModal();
+  }
+  $("entryForm").addEventListener("submit", e => {
+    e.preventDefault();
+    if (!pendingDateKey) return;
+    const hours = Number($("durationHours").value), minutes = Number($("durationMinutes").value);
+    if (!Number.isInteger(hours) || hours < 0 || hours > 24 || !Number.isInteger(minutes) || minutes < 0 || minutes > 59 || (hours === 0 && minutes === 0)) {
+      $("entryMessage").textContent = "Indique une durée valide supérieure à zéro."; return;
+    }
+    state.entries[pendingDateKey] = { occasion: $("occasionSelect").value, hours, minutes };
+    save(); $("entryDialog").close(); pendingDateKey = null; render(); toast("Journée enregistrée.");
+  });
+  $("cancelEntryBtn").addEventListener("click", () => { $("entryDialog").close(); pendingDateKey = null; });
   function renderStats() {
     const keys=sortedKeys(), streak=streaks(), hours=keys.length*Number(state.hours);
-    $("statsTotal").textContent=keys.length; $("bestStreak").textContent=streak.best; $("hoursTotal").textContent=hours.toLocaleString("fr-BE")+" h";
+    $("statsTotal").textContent=keys.length; $("bestStreak").textContent=streak.best; $("hoursTotal").textContent=hours.toLocaleString("fr-BE",{maximumFractionDigits:1})+" h";
     const year=new Date().getFullYear(), months=Array.from({length:12},(_,i)=>keys.filter(k=>k.startsWith(`${year}-${pad(i+1)}-`)).length), max=Math.max(1,...months);
     const labels=["Jan","Fév","Mar","Avr","Mai","Juin","Juil","Aoû","Sep","Oct","Nov","Déc"];
     $("monthlyBars").innerHTML=months.map((v,i)=>`<div class="bar-item"><span class="bar-value">${v||""}</span><div class="bar-track"><div class="bar-fill" style="height:${v/max*100}%"></div></div><span class="bar-month">${labels[i]}</span></div>`).join("");
